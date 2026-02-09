@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六爻占卜 - 古典易学</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css');
+        
+        :root {
+            --ancient-bronze: #b8860b;
+            --antique-brass: #cd7f32;
+            --dark-bronze: #8b6914;
+            --ink-black: #0d0d0d;
+            --charcoal: #1a1a1a;
+            --rich-black: #080808;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: linear-gradient(135deg, var(--ink-black) 0%, var(--rich-black) 50%, var(--charcoal) 100%);
+            color: #f5e6d3;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .bronze-border {
+            border: 2px solid var(--ancient-bronze);
+            box-shadow: 0 0 20px rgba(184, 134, 11, 0.3), inset 0 0 20px rgba(184, 134, 11, 0.1);
+        }
+        
+        .bronze-text {
+            color: var(--ancient-bronze);
+        }
+        
+        .bronze-bg {
+            background: linear-gradient(135deg, var(--ancient-bronze), var(--antique-brass));
+        }
+        
+        .yao-line {
+            height: 8px;
+            background: linear-gradient(90deg, var(--ancient-bronze), var(--antique-brass));
+            margin: 12px 0;
+            border-radius: 2px;
+            box-shadow: 0 2px 8px rgba(184, 134, 11, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .yao-line-broken {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .yao-line-broken .segment {
+            flex: 1;
+            height: 8px;
+            background: linear-gradient(90deg, var(--ancient-bronze), var(--antique-brass));
+            border-radius: 2px;
+            box-shadow: 0 2px 8px rgba(184, 134, 11, 0.5);
+        }
+        
+        .hexagram-box {
+            background: rgba(26, 26, 26, 0.8);
+            border: 3px solid var(--ancient-bronze);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(184, 134, 11, 0.2);
+            position: relative;
+        }
+        
+        .hexagram-box::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border: 1px solid var(--dark-bronze);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+        
+        .divine-button {
+            background: linear-gradient(135deg, var(--ancient-bronze), var(--dark-bronze));
+            color: #fff;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-family: 'Noto Serif SC', serif;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(184, 134, 11, 0.4);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .divine-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(184, 134, 11, 0.6);
+        }
+        
+        .divine-button:active {
+            transform: translateY(0);
+        }
+        
+        .result-card {
+            background: rgba(26, 26, 26, 0.9);
+            border: 2px solid var(--ancient-bronze);
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .trigram-symbol {
+            font-size: 48px;
+            color: var(--ancient-bronze);
+            text-shadow: 0 0 20px rgba(184, 134, 11, 0.5);
+        }
+        
+        .yao-number {
+            position: absolute;
+            left: -30px;
+            font-size: 14px;
+            color: var(--ancient-bronze);
+            font-weight: 600;
+        }
+        
+        .input-field {
+            background: rgba(26, 26, 26, 0.8);
+            border: 2px solid var(--ancient-bronze);
+            color: #f5e6d3;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 16px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            box-shadow: 0 0 15px rgba(184, 134, 11, 0.4);
+        }
+        
+        .input-field::placeholder {
+            color: rgba(245, 230, 211, 0.5);
+        }
+        
+        .section-title {
+            color: var(--ancient-bronze);
+            font-size: 24px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--dark-bronze);
+        }
+        
+        .ornament {
+            color: var(--ancient-bronze);
+            font-size: 20px;
+            margin: 0 10px;
+        }
+        
+        .scroll-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(184, 134, 11, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(184, 134, 11, 0.03) 0%, transparent 50%);
+            z-index: 0;
+        }
+        
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .loading-animation {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .loading-animation.active {
+            display: block;
+        }
+        
+        .loading-dots span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: var(--ancient-bronze);
+            border-radius: 50%;
+            margin: 0 6px;
+            animation: loadingDots 1.4s infinite ease-in-out;
+        }
+        
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes loadingDots {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        .hexagram-name {
+            font-size: 32px;
+            color: var(--ancient-bronze);
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(184, 134, 11, 0.4);
+        }
+        
+        .gua-description {
+            line-height: 1.8;
+            color: #d4c4b0;
+        }
+        
+        .history-card {
+            background: rgba(26, 26, 26, 0.9);
+            border: 2px solid var(--ancient-bronze);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .history-card:hover {
+            box-shadow: 0 0 20px rgba(184, 134, 11, 0.3);
+        }
+        
+        .history-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .history-section.active {
+            display: block;
+        }
+        
+        .tab-button {
+            background: transparent;
+            border: 2px solid var(--ancient-bronze);
+            color: var(--ancient-bronze);
+            padding: 10px 25px;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 5px;
+        }
+        
+        .tab-button:hover {
+            background: rgba(184, 134, 11, 0.1);
+        }
+        
+        .tab-button.active {
+            background: var(--ancient-bronze);
+            color: #fff;
+        }
+        
+        @media (max-width: 768px) {
+            .hexagram-box {
+                padding: 20px;
+            }
+            
+            .section-title {
+                font-size: 20px;
+            }
+            
+            .hexagram-name {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="scroll-pattern"></div>
+    
+    <div class="content-wrapper min-h-screen py-12 px-4">
+        <div class="max-w-4xl mx-auto">
+            <!-- 标题区域 -->
+            <header class="text-center mb-12">
+                <h1 class="text-5xl md:text-6xl font-bold mb-4 bronze-text" style="text-shadow: 0 0 40px rgba(184, 134, 11, 0.3);">
+                    六爻占卜
+                </h1>
+                <p class="text-xl text-amber-200/80">
+                    <span class="ornament">☯</span>
+                    古典易学 · 天人合一
+                    <span class="ornament">☯</span>
+                </p>
+            </header>
+            
+            <!-- 标签切换 -->
+            <div class="text-center mb-8">
+                <button class="tab-button active" id="tabDivination" onclick="switchTab('divination')">开始占卜</button>
+                <button class="tab-button" id="tabHistory" onclick="switchTab('history')">历史记录</button>
+            </div>
+            
+            <!-- 占卜区域 -->
+            <div id="divinationSection" class="tab-content">
+                <!-- 问答区域 -->
+                <div class="hexagram-box mb-8">
+                    <h2 class="section-title text-center">诚心所问</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-amber-200/90 mb-2 text-lg">所占之事</label>
+                            <input 
+                                type="text" 
+                                id="question" 
+                                class="input-field" 
+                                placeholder="请输入您要占卜的问题..."
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-amber-200/90 mb-2 text-lg">您的姓名</label>
+                            <input 
+                                type="text" 
+                                id="name" 
+                                class="input-field" 
+                                placeholder="请输入您的姓名"
+                            >
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 占卜按钮 -->
+                <div class="text-center mb-8">
+                    <button class="divine-button text-xl" onclick="startDivination()">
+                        开始占卜
+                    </button>
+                </div>
+                
+                <!-- 加载动画 -->
+                <div id="loading" class="loading-animation hexagram-box">
+                    <p class="text-xl bronze-text mb-4">正在卜卦...</p>
+                    <div class="loading-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <!-- 结果区域 -->
+                <div id="result" class="result-card">
+                    <!-- 本卦 -->
+                    <div class="mb-8">
+                        <h3 class="section-title text-center">本卦</h3>
+                        <div class="flex justify-center items-center mb-4">
+                            <div class="hexagram-display" id="primaryHexagram"></div>
+                        </div>
+                        <div class="text-center">
+                            <p class="hexagram-name" id="primaryName"></p>
+                            <p class="gua-description" id="primaryDescription"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- 变卦 -->
+                    <div class="mb-8" id="changedSection" style="display: none;">
+                        <h3 class="section-title text-center">变卦</h3>
+                        <div class="flex justify-center items-center mb-4">
+                            <div class="hexagram-display" id="changedHexagram"></div>
+                        </div>
+                        <div class="text-center">
+                            <p class="hexagram-name" id="changedName"></p>
+                            <p class="gua-description" id="changedDescription"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- 卦辞 -->
+                    <div class="mb-8">
+                        <h3 class="section-title text-center">卦辞</h3>
+                        <p class="gua-description text-center text-lg" id="guaText"></p>
+                    </div>
+                    
+                    <!-- 释义 -->
+                    <div class="mb-8">
+                        <h3 class="section-title text-center">卦义解析</h3>
+                        <p class="gua-description" id="interpretation"></p>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="text-center mt-8 space-x-4">
+                        <button class="divine-button" onclick="resetDivination()">
+                            再次占卜
+                        </button>
+                        <button class="divine-button" onclick="saveRecord()">
+                            保存记录
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 历史记录区域 -->
+            <div id="historySection" class="history-section">
+                <div class="hexagram-box">
+                    <h2 class="section-title text-center">占卜历史</h2>
+                    <div id="historyList" class="mt-6">
+                        <p class="text-center text-amber-200/60">暂无占卜记录</p>
+                    </div>
+                    <div class="text-center mt-6">
+                        <button class="divine-button" onclick="loadHistory()">
+                            刷新记录
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部说明 -->
+            <footer class="text-center mt-12 text-amber-200/60 text-sm">
+                <p>⊙ 六爻占卜 · 仅供娱乐参考 ⊙</p>
+                <p class="mt-2">心存敬畏 · 诚心所问</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Supabase 配置
+        const supabaseUrl = 'https://cepmomxstzxenjutkabb.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlcG1vbXhzdHp4ZW5qdXRrYWJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2Mjc5MzUsImV4cCI6MjA4NjIwMzkzNX0.8KzWwiTktXag6qS1wPoIUt4I0Ke5mvQ3z3RO_Tfh-ok';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // 当前占卜结果
+        let currentDivination = null;
+        
+        // 六十四卦数据
+        const hexagrams = [
+            { name: "乾卦", symbol: "䷀", description: "元亨利贞", fullText: "乾为天，刚健中正，纯阳之卦。象征天，代表刚强、创造、领导之力。凡事皆利于开始，但需刚中带柔，方能长久。", interpretation: "当前处于强势地位，具备创造和领导能力。宜积极进取，但要注意保持谦逊和克制，避免过于刚硬。" },
+            { name: "坤卦", symbol: "䷁", description: "元亨，利牝马之贞", fullText: "坤为地，厚德载物，纯阴之卦。象征地，代表包容、承载、柔顺之力。宜顺应形势，以柔克刚。", interpretation: "宜采取温和、包容的态度。顺应时势，以柔克刚，能够获得长久的支持和发展。" },
+            { name: "屯卦", symbol: "䷂", description: "元亨利贞，勿用有攸往", fullText: "水雷屯，万物始生，困难初现。象征初生之艰难，需要积蓄力量，待时而动。", interpretation: "当前面临新阶段的开始，会有一些困难和阻碍。建议暂时保持低调，积蓄力量，等待合适的时机再行动。" },
+            { name: "蒙卦", symbol: "䷃", description: "亨。匪我求童蒙，童蒙求我", fullText: "山水蒙，蒙昧待启，启蒙之时。象征需要学习和启蒙，应该虚心求教，接受指导。", interpretation: "现在是学习和成长的良好时机。保持谦虚的态度，主动寻求知识和指导，能够获得进步。" },
+            { name: "需卦", symbol: "䷄", description: "有孚，光亨，贞吉", fullText: "水天需，等待时机，耐心为贵。象征需要等待和积累，不宜急于求成。", interpretation: "时机尚未成熟，需要保持耐心。做好充分的准备，等待合适的机会到来。" },
+            { name: "讼卦", symbol: "䷅", description: "有孚，窒。惕中吉", fullText: "天水讼，争讼不和，宜和解。象征纠纷和冲突，应该寻求和解而非激化矛盾。", interpretation: "可能会遇到一些冲突或争议。建议以和为贵，寻求双方的共同点，避免激化矛盾。" },
+            { name: "师卦", symbol: "䷆", description: "贞，丈人，吉无咎", fullText: "地水师，军队出征，纪律严明。象征需要有组织、有纪律的行动，以克服困难。", interpretation: "需要团结一致，有组织地行动。保持纪律和秩序，能够克服当前的困难。" },
+            { name: "比卦", symbol: "䷇", description: "吉。原筮元永贞", fullText: "水地比，亲密比附，和谐相处。象征需要与他人建立良好的关系，团结协作。", interpretation: "建立良好的人际关系对当前非常重要。寻求合作和支持，能够事半功倍。" },
+            { name: "小畜卦", symbol: "䷈", description: "亨。密云不雨", fullText: "风天小畜，小有积蓄，尚未大成。象征进展缓慢，需要继续积累和努力。", interpretation: "进展比较缓慢，但方向是正确的。继续努力，积累经验和资源，不要急于求成。" },
+            { name: "履卦", symbol: "䷉", description: "履虎尾，不咥人，亨", fullText: "天泽履，谨慎前行，如履薄冰。象征需要谨慎小心，但只要小心行事，能够安全度过。", interpretation: "当前的情况比较复杂，需要谨慎行事。小心谨慎地处理事务，能够避免风险。" },
+            { name: "泰卦", symbol: "䷊", description: "小往大来，吉亨", fullText: "地天泰，通泰吉祥，天地交泰。象征大吉大利，诸事顺遂，是难得的好卦。", interpretation: "这是一个非常好的时机，各种条件都很有利。可以大胆行动，抓住机会，能够取得成功。" },
+            { name: "否卦", symbol: "䷋", description: "否之匪人，不利君子贞", fullText: "天地否，闭塞不通，阴阳相背。象征困难时期，条件不利，需要韬光养晦。", interpretation: "当前条件不太有利，行动会遇到阻碍。建议保持低调，等待形势好转。" },
+            { name: "同人卦", symbol: "䷌", description: "同人于野，亨", fullText: "天火同人，志同道合，和谐共处。象征需要与他人合作，同心协力。", interpretation: "与志同道合的人合作是成功的关键。寻求合作伙伴，共同努力，能够取得好的结果。" },
+            { name: "大有卦", symbol: "䷍", description: "元亨", fullText: "火天大有，大有作为，丰盛大有。象征收获丰富，条件优越，是进取的好时机。", interpretation: "条件非常优越，有机会取得大的成就。抓住机会，积极行动，能够获得丰厚的回报。" },
+            { name: "谦卦", symbol: "䷎", description: "亨，君子有终", fullText: "地山谦，谦让不骄，君子有德。象征谦虚能够带来长久的成功和尊重。", interpretation: "保持谦虚的态度是非常重要的。不要骄傲自满，虚心待人，能够获得长久的成功。" },
+            { name: "豫卦", symbol: "䷏", description: "利建侯行师", fullText: "雷地豫，安乐豫悦，做好准备。象征需要提前做好准备，以应对未来的变化。", interpretation: "现在是做好准备的好时机。提前规划，做好准备，能够更好地应对未来的挑战。" },
+            { name: "随卦", symbol: "䷐", description: "元亨利贞，无咎", fullText: "泽雷随，顺应时势，随机应变。象征需要灵活应变，顺应形势。", interpretation: "保持灵活性，根据形势的变化及时调整策略。不要固守成规，灵活应对能够取得好的结果。" },
+            { name: "蛊卦", symbol: "䷑", description: "元亨，利涉大川", fullText: "山风蛊，整顿改革，去旧立新。象征需要进行改革和创新，清除陈旧。", interpretation: "当前的问题需要进行改革和创新。勇于改变旧的观念和方法，能够开辟新的局面。" },
+            { name: "临卦", symbol: "䷒", description: "元亨利贞", fullText: "地泽临，居高临下，把握时机。象征形势有利，应该积极行动。", interpretation: "现在的形势非常有利，应该抓住机会积极行动。不要犹豫，果断前进。" },
+            { name: "观卦", symbol: "䷓", description: "盥而不荐，有孚颙若", fullText: "风地观，观察审视，深思熟虑。象征需要仔细观察和思考后再行动。", interpretation: "在行动之前需要仔细观察和思考。深入了解情况，制定周密的计划，再行动。" },
+            { name: "噬嗑卦", symbol: "䷔", description: "亨。利用狱", fullText: "火雷噬嗑，咬碎阻碍，克服困难。象征需要坚决地克服障碍和困难。", interpretation: "遇到阻碍需要坚决地克服。不要退缩，采取果断的行动，能够突破障碍。" },
+            { name: "贲卦", symbol: "䷕", description: "亨。小利有攸往", fullText: "山火贲，文饰修饰，注重形象。象征需要注重外在形象和修饰。", interpretation: "适当的外在修饰和包装是必要的。注重形象和细节，能够给人留下好印象。" },
+            { name: "剥卦", symbol: "䷖", description: "不利有攸往", fullText: "山地剥，剥落衰退，形势不利。象征衰退的时期，不宜大动作。", interpretation: "当前形势不太好，不宜采取大的行动。保持低调，等待时机好转。" },
+            { name: "复卦", symbol: "䷗", description: "亨。出入无疾", fullText: "地雷复，恢复复兴，重新开始。象征事情开始好转，是重新开始的好时机。", interpretation: "事情开始好转，是重新开始的好时机。抓住机会，积极行动，能够恢复和复兴。" },
+            { name: "无妄卦", symbol: "䷘", description: "元亨利贞", fullText: "天雷无妄，无妄之灾，保持本心。象征保持真诚和本心，不存妄念。", interpretation: "保持真诚和本心非常重要。不要心存妄念，坚持做正确的事情，能够避免灾祸。" },
+            { name: "大畜卦", symbol: "䷙", description: "利贞，不家食吉", fullText: "山天大畜，大有积蓄，储备力量。象征需要积累和储备，为未来做准备。", interpretation: "现在是积累和储备的好时机。为未来做好准备，积累资源和能力。" },
+            { name: "颐卦", symbol: "䷚", description: "贞吉。观颐", fullText: "山雷颐，颐养生息，注意健康。象征需要关注养生和健康。", interpretation: "关注健康和养生非常重要。注意休息和营养，保持身心健康。" },
+            { name: "大过卦", symbol: "䷛", description: "栋桡，利有攸往", fullText: "泽风大过，重大压力，承受考验。象征面临重大压力和挑战。", interpretation: "面临重大的压力和挑战，需要坚强地承受。坚持下去，能够度过难关。" },
+            { name: "坎卦", symbol: "䷜", description: "习坎，有孚维心", fullText: "坎为水，重重险阻，需要诚信。象征面临重重困难，需要保持诚信。", interpretation: "面临重重困难和险阻。保持诚信和坚定的信念，能够度过难关。" },
+            { name: "离卦", symbol: "䷝", description: "利贞，亨", fullText: "离为火，光明灿烂，附丽向上。象征光明和希望，形势向好。", interpretation: "前景光明，充满希望。积极向上，能够取得好的结果。" },
+            { name: "咸卦", symbol: "䷞", description: "亨，利贞", fullText: "泽山咸，感应相通，心心相印。象征相互感应和理解，情感和谐。", interpretation: "相互理解和感应非常重要。建立良好的情感联系，能够促进关系的和谐。" },
+            { name: "恒卦", symbol: "䷟", description: "亨，无咎", fullText: "雷风恒，持之以恒，长久之道。象征需要持之以恒，坚持到底。", interpretation: "坚持和持久非常重要。不要半途而废，坚持下去，能够取得长久的成功。" },
+            { name: "遁卦", symbol: "䷠", description: "亨，小利贞", fullText: "天山遁，退避隐居，韬光养晦。象征需要暂时退避和隐藏。", interpretation: "当前不适合大张旗鼓，宜采取退避的策略。保持低调，等待更好的时机。" },
+            { name: "大壮卦", symbol: "䷡", description: "利贞", fullText: "雷天大壮，阳气大盛，力量强大。象征力量强大，有利于行动。", interpretation: "现在力量强大，是行动的好时机。抓住机会，积极进取，能够取得成功。" },
+            { name: "晋卦", symbol: "䷢", description: "康侯用锡马蕃庶", fullText: "火地晋，光明前进，逐步上升。象征逐步上升和发展，前景光明。", interpretation: "正在逐步上升和发展，前景非常光明。积极进取，能够获得提升和发展。" },
+            { name: "明夷卦", symbol: "䷣", description: "利艰贞", fullText: "地火明夷，光明受损，韬光养晦。象征光明被遮蔽，需要隐藏智慧。", interpretation: "当前形势不太明朗，宜保持低调。隐藏智慧和实力，等待时机。" },
+            { name: "家人卦", symbol: "䷤", description: "利女贞", fullText: "风火家人，家庭和睦，各尽其责。象征家庭和谐，成员各司其职。", interpretation: "家庭和谐非常重要。各尽其责，相互支持，能够促进家庭的幸福。" },
+            { name: "睽卦", symbol: "䷥", description: "小事吉", fullText: "火泽睽，对立分歧，寻求和解。象征存在分歧和冲突，需要和解。", interpretation: "存在一些分歧和冲突。寻求和解和共同点，能够化解矛盾。" },
+            { name: "蹇卦", symbol: "䷦", description: "利西南，不利东北", fullText: "水山蹇，前进受阻，需要反省。象征前进遇到阻碍，需要反省和调整。", interpretation: "前进遇到了阻碍。需要反省和调整策略，寻找新的方向。" },
+            { name: "解卦", symbol: "䷧", description: "利西南", fullText: "雷水解，解除困难，缓解紧张。象征困难开始缓解，形势好转。", interpretation: "困难和紧张开始缓解。抓住机会，采取行动，能够解决问题。" },
+            { name: "损卦", symbol: "䷨", description: "有孚，元吉", fullText: "山泽损，损己利人，以损为益。象征通过损失来获得更大的利益。", interpretation: "有时需要做出一些牺牲和损失，但这是为了获得更大的利益。要有长远的眼光。" },
+            { name: "益卦", symbol: "䷩", description: "利有攸往", fullText: "风雷益，增益补短，积极进取。象征能够获得增益和提升。", interpretation: "是获得增益和提升的好时机。积极进取，能够获得更多的资源和机会。" },
+            { name: "夬卦", symbol: "䷪", description: "扬于王庭，孚号", fullText: "泽天夬，决断果敢，消除障碍。象征需要果断决策，消除障碍。", interpretation: "需要果断地做出决策。不要犹豫，坚决行动，能够消除障碍。" },
+            { name: "姤卦", symbol: "䷫", description: "女壮，勿用取女", fullText: "天风姤，不期而遇，意外之变。象征意外的相遇和变化。", interpretation: "可能会遇到意外的情况。保持警惕，灵活应对，能够处理好突发事件。" },
+            { name: "萃卦", symbol: "䷬", description: "亨。王假有庙", fullText: "泽地萃，聚集英才，团结协作。象征聚集人才和资源，团结合作。", interpretation: "聚集人才和资源是成功的关键。团结协作，能够取得大的成就。" },
+            { name: "升卦", symbol: "䷭", description: "元亨", fullText: "地风升，逐步上升，循序渐进。象征逐步上升和发展，稳步前进。", interpretation: "正在稳步上升和发展。循序渐进，能够取得持续的成功。" },
+            { name: "困卦", symbol: "䷮", description: "亨，贞大人吉", fullText: "泽水困，困境待解，坚守正道。象征处于困境中，但坚守正道能够解脱。", interpretation: "当前处于困境中。坚守正道，保持信念，能够度过难关。" },
+            { name: "井卦", symbol: "䷯", description: "改邑不改井", fullText: "水风井，井养无穷，源源不断。象征资源源源不断，能够持续供给。", interpretation: "拥有源源不断的资源和能力。充分利用这些资源，能够持续发展。" },
+            { name: "革卦", symbol: "䷰", description: "己日乃孚", fullText: "泽火革，变革创新，推陈出新。象征需要进行变革和创新。", interpretation: "需要进行变革和创新。勇于改变，能够开辟新的局面。" },
+            { name: "鼎卦", symbol: "䷱", description: "元吉，亨", fullText: "火风鼎，鼎立成器，大业可成。象征能够建立大业，取得重大成就。", interpretation: "是建立大业的好时机。把握机会，努力奋斗，能够取得重大成就。" },
+            { name: "震卦", symbol: "䷲", description: "亨。震来虩虩", fullText: "震为雷，震动惊醒，奋起直追。象征受到惊醒和刺激，开始奋起。", interpretation: "受到某种刺激或警醒。把握这个机会，奋起直追，能够改变现状。" },
+            { name: "艮卦", symbol: "䷳", description: "艮其背，不获其身", fullText: "艮为山，静止不动，适可而止。象征需要停止和冷静，不可冒进。", interpretation: "不宜冒进，需要保持冷静。适可而止，等待更好的时机。" },
+            { name: "渐卦", symbol: "䷴", description: "女归吉", fullText: "风山渐，循序渐进，逐步发展。象征需要循序渐进，稳步前进。", interpretation: "循序渐进是最好的策略。稳步前进，能够取得持续的发展。" },
+            { name: "归妹卦", symbol: "䷵", description: "征凶，无攸利", fullText: "雷泽归妹，错配姻缘，后果堪忧。象征不当的结合会导致不良后果。", interpretation: "某些结合或合作可能不太合适。需要仔细考虑，避免不当的决定。" },
+            { name: "丰卦", symbol: "䷶", description: "亨，王假之", fullText: "雷电丰，丰盛大吉，收获之时。象征大丰收和繁荣，是收获的好时机。", interpretation: "是丰收和繁荣的时机。收获成果，享受成功，同时为未来做准备。" },
+            { name: "旅卦", symbol: "䷷", description: "小亨", fullText: "火山旅，旅途在外，漂泊不定。象征处于不稳定的状态，需要适应。", interpretation: "当前状态不太稳定，需要适应变化。保持灵活，能够应对各种情况。" },
+            { name: "巽卦", symbol: "䷸", description: "小亨", fullText: "巽为风，顺从柔顺，随风而动。象征需要顺从和适应形势。", interpretation: "顺从和适应形势是明智的选择。保持灵活，顺应变化，能够取得好的结果。" },
+            { name: "兑卦", symbol: "䷹", description: "亨，利贞", fullText: "兑为泽，喜悦欢乐，沟通顺畅。象征喜悦和顺利的沟通。", interpretation: "是喜悦和顺利的时期。保持积极的态度，加强沟通，能够获得好的结果。" },
+            { name: "涣卦", symbol: "䷺", description: "亨。王假有庙", fullText: "风水涣，离散之象，重新凝聚。象征离散后需要重新凝聚力量。", interpretation: "可能会有一些离散或分散。需要重新凝聚力量，团结一致。" },
+            { name: "节卦", symbol: "䷻", description: "亨。苦节不可贞", fullText: "水泽节，节制适度，守中为宜。象征需要适度的节制和约束。", interpretation: "适度的节制是必要的。不要过度，保持平衡，能够取得好的效果。" },
+            { name: "中孚卦", symbol: "䷼", description: "豚鱼吉，利涉大川", fullText: "风泽中孚，诚信为本，以信动人。象征诚信非常重要，是成功的基础。", interpretation: "保持诚信是非常重要的。以诚信待人，能够赢得信任和支持。" },
+            { name: "小过卦", symbol: "䷽", description: "亨，利贞", fullText: "雷山小过，小有过错，及时修正。象征可能会犯小错，但及时修正即可。", interpretation: "可能会犯一些小错，但不要担心。及时修正，继续前进。" },
+            { name: "既济卦", symbol: "䷾", description: "亨小，利贞", fullText: "水火既济，事情完成，完美收官。象征事情圆满完成，是成功的标志。", interpretation: "事情已经圆满完成。享受成功的喜悦，同时为新的开始做准备。" },
+            { name: "未济卦", symbol: "䷿", description: "亨", fullText: "火水未济，尚未完成，还需努力。象征事情尚未完成，还需要继续努力。", interpretation: "事情还没有完成，还需要继续努力。坚持下去，不要放弃，能够取得最终的胜利。" }
+        ];
+        
+        // 六爻的阴爻和阳爻
+        const yangYao = 1;
+        const yinYao = 0;
+        
+        // 抛硬币模拟
+        function tossCoin() {
+            return Math.random() < 0.5 ? yangYao : yinYao;
+        }
+        
+        // 生成一个卦
+        function generateHexagram() {
+            const yaos = [];
+            const changingYaos = [];
+            
+            for (let i = 0; i < 6; i++) {
+                const yao = tossCoin();
+                yaos.push(yao);
+                
+                // 约25%的概率为变爻
+                if (Math.random() < 0.25) {
+                    changingYaos.push(i);
+                }
+            }
+            
+            return { yaos, changingYaos };
+        }
+        
+        // 根据爻位计算卦的索引
+        function calculateHexagramIndex(yaos) {
+            let index = 0;
+            for (let i = 0; i < 6; i++) {
+                if (yaos[i] === yangYao) {
+                    index += Math.pow(2, i);
+                }
+            }
+            return index;
+        }
+        
+        // 渲染卦爻
+        function renderHexagram(yaos) {
+            let html = '';
+            const positionNames = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'];
+            
+            for (let i = 5; i >= 0; i--) {
+                html += '<div style="position: relative; margin: 8px 0;">';
+                html += '<span class="yao-number">' + positionNames[i] + '</span>';
+                
+                if (yaos[i] === yangYao) {
+                    html += '<div class="yao-line"></div>';
+                } else {
+                    html += '<div class="yao-line yao-line-broken">';
+                    html += '<div class="segment"></div>';
+                    html += '<div class="segment"></div>';
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            }
+            
+            return html;
+        }
+        
+        // 开始占卜
+        function startDivination() {
+            const question = document.getElementById('question').value.trim();
+            const name = document.getElementById('name').value.trim();
+            
+            if (!question) {
+                alert('请输入您要占卜的问题');
+                return;
+            }
+            
+            // 显示加载动画
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('result').style.display = 'none';
+            
+            // 模拟占卜过程
+            setTimeout(() => {
+                // 生成本卦
+                const hexagram = generateHexagram();
+                const primaryIndex = calculateHexagramIndex(hexagram.yaos);
+                const primaryHexagram = hexagrams[primaryIndex];
+                
+                // 如果有变爻，生成交卦
+                let changedHexagram = null;
+                if (hexagram.changingYaos.length > 0) {
+                    const changedYao = [...hexagram.yaos];
+                    hexagram.changingYaos.forEach(index => {
+                        changedYao[index] = changedYao[index] === yangYao ? yinYao : yangYao;
+                    });
+                    const changedIndex = calculateHexagramIndex(changedYao);
+                    changedHexagram = hexagrams[changedIndex];
+                }
+                
+                // 保存当前占卜结果
+                currentDivination = {
+                    primary: primaryHexagram,
+                    changed: changedHexagram
+                };
+                
+                // 渲染结果
+                document.getElementById('primaryHexagram').innerHTML = renderHexagram(hexagram.yaos);
+                document.getElementById('primaryName').textContent = primaryHexagram.name;
+                document.getElementById('primaryDescription').textContent = primaryHexagram.description;
+                document.getElementById('guaText').textContent = primaryHexagram.fullText;
+                document.getElementById('interpretation').textContent = primaryHexagram.interpretation;
+                
+                if (changedHexagram) {
+                    document.getElementById('changedSection').style.display = 'block';
+                    const changedYao = [...hexagram.yaos];
+                    hexagram.changingYaos.forEach(index => {
+                        changedYao[index] = changedYao[index] === yangYao ? yinYao : yangYao;
+                    });
+                    document.getElementById('changedHexagram').innerHTML = renderHexagram(changedYao);
+                    document.getElementById('changedName').textContent = changedHexagram.name;
+                    document.getElementById('changedDescription').textContent = changedHexagram.description;
+                } else {
+                    document.getElementById('changedSection').style.display = 'none';
+                }
+                
+                // 隐藏加载动画，显示结果
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('result').style.display = 'block';
+                
+                // 滚动到结果区域
+                document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+            }, 2000);
+        }
+        
+        // 重置占卜
+        function resetDivination() {
+            document.getElementById('question').value = '';
+            document.getElementById('name').value = '';
+            document.getElementById('result').style.display = 'none';
+            currentDivination = null;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // 切换标签
+        function switchTab(tab) {
+            if (tab === 'divination') {
+                document.getElementById('divinationSection').style.display = 'block';
+                document.getElementById('historySection').classList.remove('active');
+                document.getElementById('tabDivination').classList.add('active');
+                document.getElementById('tabHistory').classList.remove('active');
+            } else {
+                document.getElementById('divinationSection').style.display = 'none';
+                document.getElementById('historySection').classList.add('active');
+                document.getElementById('tabDivination').classList.remove('active');
+                document.getElementById('tabHistory').classList.add('active');
+                loadHistory();
+            }
+        }
+        
+        // 保存占卜记录
+        async function saveRecord() {
+            if (!currentDivination) {
+                alert('请先进行占卜');
+                return;
+            }
+            
+            const question = document.getElementById('question').value.trim();
+            const name = document.getElementById('name').value.trim() || '匿名';
+            
+            if (!question) {
+                alert('请输入占卜问题');
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabase
+                    .from('divination_records')
+                    .insert([
+                        {
+                            question: question,
+                            name: name,
+                            hexagram_name: currentDivination.primary.name,
+                            hexagram_symbol: currentDivination.primary.symbol,
+                            hexagram_description: currentDivination.primary.description,
+                            changed_hexagram_name: currentDivination.changed ? currentDivination.changed.name : null,
+                            changed_hexagram_symbol: currentDivination.changed ? currentDivination.changed.symbol : null,
+                            changed_hexagram_description: currentDivination.changed ? currentDivination.changed.description : null,
+                            interpretation: currentDivination.primary.interpretation
+                        }
+                    ]);
+                
+                if (error) throw error;
+                
+                alert('占卜记录已保存！');
+            } catch (error) {
+                console.error('保存失败:', error);
+                alert('保存失败，请稍后重试');
+            }
+        }
+        
+        // 加载历史记录
+        async function loadHistory() {
+            try {
+                const { data, error } = await supabase
+                    .from('divination_records')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                
+                if (error) throw error;
+                
+                const historyList = document.getElementById('historyList');
+                
+                if (!data || data.length === 0) {
+                    historyList.innerHTML = '<p class="text-center text-amber-200/60">暂无占卜记录</p>';
+                    return;
+                }
+                
+                let html = '';
+                data.forEach(record => {
+                    const date = new Date(record.created_at).toLocaleString('zh-CN');
+                    html += `
+                        <div class="history-card">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="bronze-text font-bold text-lg">${record.hexagram_name}</span>
+                                <span class="text-amber-200/60 text-sm">${date}</span>
+                            </div>
+                            <p class="text-amber-200/80 mb-2"><strong>问题：</strong>${record.question}</p>
+                            <p class="text-amber-200/80 mb-2"><strong>占卜者：</strong>${record.name || '匿名'}</p>
+                            ${record.changed_hexagram_name ? `<p class="text-amber-200/80 mb-2"><strong>变卦：</strong>${record.changed_hexagram_name}</p>` : ''}
+                            <p class="gua-description text-sm mt-2">${record.interpretation}</p>
+                        </div>
+                    `;
+                });
+                
+                historyList.innerHTML = html;
+            } catch (error) {
+                console.error('加载历史失败:', error);
+                document.getElementById('historyList').innerHTML = '<p class="text-center text-amber-200/60">加载失败，请稍后重试</p>';
+            }
+        }
+    </script>
+</body>
+</html>
